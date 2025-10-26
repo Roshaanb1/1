@@ -1,60 +1,54 @@
-# 🖥️ Remote Desktop Protocol
+# 🧊 OPERATION: L.O.W. (Lethal Output Workflow) 🧊
 
-Access a **Windows 11 Remote Desktop** with **free 4GB/s internet speed** instantly!  
-This project provides a quick and reliable way to connect to a powerful remote environment for development, testing, or personal use. 🚀
+## 🚨 CLASSIFIED: PRIVATE ASSET PROTOCOL
 
----
+**THIS REPOSITORY IS STRICTLY PRIVATE.** It is designed for singular, exclusive use. Any distribution, modification, or sharing outside of authorized channels is prohibited. This is not for public consumption.
 
-## 📜 Description
-
-The **Remote Desktop Protocol (RDP)** project allows users to connect to a **Windows 11** virtual machine in the cloud, offering:
-
-- ⚡ **4GB/s Internet Speed**  
-- 💻 **Windows 11 OS**  
-- 🌍 **Free and Easy Remote Access**  
-- 🔒 **Secure and Fast Connection**  
+### **MADE BY 65pd**
 
 ---
 
-## ⚙️ Setup & Installation
+## ⚙️ CORE MODULE SPECIFICATIONS
 
-Getting started is super easy! Just follow the tutorial below:
+This workflow provisions a transient, high-velocity access point for maximum operational efficiency. Forget the slow lane; this is the nexus of power and speed.
 
-🎥 **Watch the setup video:**  
-👉 [How to Set Up Remote Desktop Protocol (YouTube)](https://youtu.be/bBxejfjInzc)
-
----
-
-## 🧰 Features
-
-- 💨 Blazing-fast internet connection  
-- 🪟 Full Windows 11 experience  
-- 🌐 Remote access from any device  
-- 🧩 Simple and lightweight setup  
-- 🔧 No complex configurations needed  
+| Parameter | Specification | Vibe Status |
+| :--- | :--- | :--- |
+| **Platform** | Windows 11 Enterprise (Latest Stable Runner) | **L**egendary |
+| **Connection Protocol** | RDP over Tailscale (Zero-Trust Fabric) | **C**hilly |
+| **Network Output** | **~4 GB/s** (The minimum required velocity) | **I**nsane |
+| **Access Duration** | Max 360 Minutes per cycle (via Handoff Logic) | **A**dvanced |
+| **Interface** | Raw RDP for Unfiltered Control | **B**adass |
 
 ---
 
-## 🧑‍💻 Usage
+## ⚡ ACCESS PROTOCOL: INITIATE RDP SEQUENCE
 
-1. Follow the video tutorial above.  
-2. Launch your RDP session.  
-3. Enjoy seamless Windows 11 experience with lightning-fast internet.  
+Connection is routed through your private Tailnet. Authentication details are generated upon successful deployment of the GitHub Action.
+
+1.  **Deploy Action:** Execute the `RDP + Tailscale Handoff (A)` workflow.
+2.  **Inject Key:** Provide your exclusive Tailscale Auth Key.
+3.  **Monitor Output:** After the **Install + Up Tailscale** step, the core connection details will be logged.
+
+### 🔑 CRITICAL CONNECTION LOG
+
+Locate these variables in the Action run log, specifically in the **🔔 RDP Connection Details 🔑** step:
+
+| Credential | Value | Function |
+| :--- | :--- | :--- |
+| **RDP IP ADDRESS** | `[ip-address-from-log]` | Primary Connection Target (Tailscale IP) |
+| **RDP USER** | `ghuser` | Access Identity |
+| **RDP PASSWORD** | `GH@runner!123` | Secure Access Code |
+
+> **ACTION:** Use the **RDP IP Address** and the provided credentials in your Remote Desktop client.
 
 ---
 
+## ❄️ L-LEVEL EFFICIENCY LOGIC
 
-## 📄 License
+The system employs a sophisticated A/B workflow handoff (`A.yml` -> `B.yml` -> `A.yml`) to maximize uptime and prevent runner expiration, ensuring your **L-level** session is maintained for as long as possible.
 
-This project is open-source — feel free to use, modify, and share it responsibly.  
+* `rdp-tailscale-A.yml` -> Dispatches `rdp-tailscale-B.yml`
+* `rdp-tailscale-B.yml` -> Dispatches `rdp-tailscale-A.yml`
 
----
-
-## 💬 Contact
-
-If you have questions, suggestions, or feedback, feel free to open an issue or comment on the YouTube video!  
-📺 [Watch Tutorial on YouTube](https://youtu.be/bBxejfjInzc)
-
----
-
-⭐ **If you find this project helpful, don’t forget to star the repo!**
+**This is a professional-grade, high-control environment. Operate accordingly.**
