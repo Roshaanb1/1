@@ -51,7 +51,7 @@ jobs:
     timeout-minutes: 370
     env:
       RDP_USER: ghuser
-      RDP_PASS: GH@runner!123
+      RDP_PASS: GH@runner!123 # The password for RDP connection
 
     steps:
       - name: Decide hostname + runtime
@@ -66,23 +66,35 @@ jobs:
           "RUNTIME_MINUTES=$runtime" | Out-File -Append $env:GITHUB_ENV
           Write-Host "Hostname: $hn | Runtime: $runtime min"
       
-      # ⚠️ Security: Use a robust and maintained method for Tailscale installation
-      - name: Install + Up Tailscale (using official Action or modern MSI/winget)
-        uses: tailscale/github-action@v2
-        with:
-          version: 1.x
-          authkey: ${{ inputs.ts_authkey }}
-          hostname: ${{ env.TS_HOSTNAME }}
-          accept-dns: true
-          accept-routes: true
-      
-      - name: Get Tailscale IP
+      # 💥 FIX: Corrected Tailscale installation for Windows runners
+      - name: Install Tailscale MSI (for Windows runner stability)
         run: |
           $ts = "$env:ProgramFiles\Tailscale\tailscale.exe"
+          if (-not (Test-Path $ts)) {
+            Write-Host "Tailscale not found. Installing via MSI..."
+            $url = "https://pkgs.tailscale.com/stable/tailscale-setup-amd64.msi" 
+            $dst = "$env:TEMP\tailscale.msi"
+            Invoke-WebRequest -Uri $url -OutFile $dst
+            Start-Process msiexec.exe -ArgumentList "/i","`"$dst`"","/quiet","/norestart" -Wait
+            Remove-Item $dst -Force -ErrorAction SilentlyContinue
+          } else {
+            Write-Host "Tailscale already installed."
+          }
+
+      - name: Up Tailscale (Login and Configuration)
+        run: |
+          $ts = "$env:ProgramFiles\Tailscale\tailscale.exe"
+          if (-not (Test-Path $ts)) { Write-Error "Tailscale executable not found after install."; exit 1 }
+
+          Write-Host "Attempting Tailscale login..."
+          & $ts logout | Out-Null
           & $ts up --authkey "${{ inputs.ts_authkey }}" --hostname "$env:TS_HOSTNAME" --accept-dns=true --accept-routes=true -timeout 60s
           
           $ip4 = & $ts ip -4 | Select-Object -First 1
-          if (-not $ip4) { Write-Error "Failed to get Tailscale IP after login. Check authkey." }
+          if (-not $ip4) { 
+            Write-Error "Failed to get Tailscale IP. Check Auth Key and Tailnet status." 
+            exit 1 
+          }
           "TAILSCALE_IP=$ip4" | Out-File -Append $env:GITHUB_ENV
           Write-Host "--- Tailscale IPv4: $ip4 ---"
       
@@ -138,7 +150,7 @@ jobs:
           $cycles = [int]"${{ inputs.cycles }}"
           if ($cycles -gt 0) {
             $next = $cycles - 1
-            # 💡 The only difference: B always calls A
+            # Dispatch back to A for B -> A handoff
             $target_workflow = "rdp-tailscale-A.yml"
 
             $payload = @{
