@@ -26,12 +26,10 @@ jobs:
 
           $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${{ inputs.ts_api_key }}:"))
           $tn = [uri]::EscapeDataString("${{ inputs.ts_tailnet }}")
-          # 💡 Using the new prefix
           $prefix = "${{ inputs.base_prefix }}" 
           $max = [int]"${{ inputs.max_count }}"
           $dry = Yes("${{ inputs.dry_run }}")
 
-          # ⚠️ Ensure you have admin access via the API key for this to work
           $list = Invoke-RestMethod -Uri "https://api.tailscale.com/api/v2/tailnet/$tn/devices" -Headers @{ Authorization = "Basic $auth" }
           $targets = @($list.devices | Where-Object { $_.hostname -like "$prefix*" } | Select-Object -First $max)
 
