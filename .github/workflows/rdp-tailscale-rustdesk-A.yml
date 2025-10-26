@@ -51,8 +51,7 @@ jobs:
     timeout-minutes: 370
     env:
       RDP_USER: ghuser
-      # A simple, secure password you can tell the user to use
-      RDP_PASS: GH@runner!123
+      RDP_PASS: GH@runner!123 # The password for RDP connection
 
     steps:
       - name: Decide hostname + runtime
@@ -62,34 +61,40 @@ jobs:
 
           function IntOr($v,$d){ if("$v" -match '^\d+$'){ [int]$v } else { [int]$d } }
           $runtime = IntOr("${{ inputs.runtime_minutes }}",355)
-          # Enforce GitHub's max runner time
           if ($runtime -gt 360) { $runtime = 360 }
           if ($runtime -lt 5) { $runtime = 5 }
           "RUNTIME_MINUTES=$runtime" | Out-File -Append $env:GITHUB_ENV
           Write-Host "Hostname: $hn | Runtime: $runtime min"
       
-      # ⚠️ Security: Use a robust and maintained method for Tailscale installation
-      - name: Install + Up Tailscale (using official Action or modern MSI/winget)
-        uses: tailscale/github-action@v2
-        with:
-          version: 1.x
-          authkey: ${{ inputs.ts_authkey }}
-          hostname: ${{ env.TS_HOSTNAME }}
-          accept-dns: true
-          accept-routes: true
-          # Don't exit on errors to allow fetching the IP later even if 'up' fails
-          # due to a common, recoverable Tailscale API issue
-          # Only if using self-hosted, use: tailscale-up-flags: "--force-reauth"
-      
-      - name: Get Tailscale IP
+      # 💥 FIX: Corrected Tailscale installation for Windows runners
+      - name: Install Tailscale MSI (for Windows runner stability)
         run: |
-          # Re-run the 'up' command as it sometimes fails but eventually connects.
-          # The key to "1,000,000x better" is stability.
           $ts = "$env:ProgramFiles\Tailscale\tailscale.exe"
+          if (-not (Test-Path $ts)) {
+            Write-Host "Tailscale not found. Installing via MSI..."
+            $url = "https://pkgs.tailscale.com/stable/tailscale-setup-amd64.msi" 
+            $dst = "$env:TEMP\tailscale.msi"
+            Invoke-WebRequest -Uri $url -OutFile $dst
+            Start-Process msiexec.exe -ArgumentList "/i","`"$dst`"","/quiet","/norestart" -Wait
+            Remove-Item $dst -Force -ErrorAction SilentlyContinue
+          } else {
+            Write-Host "Tailscale already installed."
+          }
+
+      - name: Up Tailscale (Login and Configuration)
+        run: |
+          $ts = "$env:ProgramFiles\Tailscale\tailscale.exe"
+          if (-not (Test-Path $ts)) { Write-Error "Tailscale executable not found after install."; exit 1 }
+
+          Write-Host "Attempting Tailscale login..."
+          & $ts logout | Out-Null
           & $ts up --authkey "${{ inputs.ts_authkey }}" --hostname "$env:TS_HOSTNAME" --accept-dns=true --accept-routes=true -timeout 60s
           
           $ip4 = & $ts ip -4 | Select-Object -First 1
-          if (-not $ip4) { Write-Error "Failed to get Tailscale IP after login. Check authkey." }
+          if (-not $ip4) { 
+            Write-Error "Failed to get Tailscale IP. Check Auth Key and Tailnet status." 
+            exit 1 
+          }
           "TAILSCALE_IP=$ip4" | Out-File -Append $env:GITHUB_ENV
           Write-Host "--- Tailscale IPv4: $ip4 ---"
       
@@ -97,7 +102,6 @@ jobs:
         run: |
           $u=$env:RDP_USER; $p=$env:RDP_PASS
           $sec = ConvertTo-SecureString $p -AsPlainText -Force
-          # Setup User
           if (-not (Get-LocalUser -Name $u -EA SilentlyContinue)) {
             New-LocalUser -Name $u -Password $sec -AccountNeverExpires | Out-Null
             Add-LocalGroupMember -Group "Administrators" -Member $u | Out-Null
@@ -108,7 +112,6 @@ jobs:
             Add-LocalGroupMember -Group "Administrators" -Member $u -EA SilentlyContinue | Out-Null
             Add-LocalGroupMember -Group "Remote Desktop Users" -Member $u -EA SilentlyContinue | Out-Null
           }
-          # Enable RDP
           Set-ItemProperty "HKLM:\System\CurrentControlSet\Control\Terminal Server" -Name fDenyTSConnections -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop" | Out-Null
           Write-Host "RDP ready."
@@ -124,7 +127,6 @@ jobs:
           Write-Host ""
           Write-Host "::endgroup::"
           
-          # Publish output variables for easy retrieval
           echo "ts_ip=$env:TAILSCALE_IP" >> $GITHUB_ENV
           echo "rdp_user=$env:RDP_USER" >> $GITHUB_ENV
           echo "rdp_pass=$env:RDP_PASS" >> $GITHUB_ENV
@@ -140,7 +142,6 @@ jobs:
             Start-Sleep -Seconds 60
           }
 
-      # ➡️ Advanced Handoff Logic
       - name: Dispatch next or stop
         if: always()
         env:
@@ -149,18 +150,14 @@ jobs:
           $cycles = [int]"${{ inputs.cycles }}"
           if ($cycles -gt 0) {
             $next = $cycles - 1
-            $target_workflow = if ("${{ github.workflow }}" -match 'rdp-tailscale-A\.yml') {
-              "rdp-tailscale-B.yml"
-            } else {
-              "rdp-tailscale-A.yml"
-            }
+            # Dispatch to B for A -> B handoff
+            $target_workflow = "rdp-tailscale-B.yml"
             
             $payload = @{
               ts_authkey      = "${{ inputs.ts_authkey }}"
               runtime_minutes = "${{ inputs.runtime_minutes }}"
               cycles          = "$next"
               rdp_count       = "${{ inputs.rdp_count }}"
-              # Note: ts_api_key, ts_tailnet, crd_code, crd_pin, do_purge are removed/ignored
             }
             $url = "https://api.github.com/repos/${{ github.repository }}/actions/workflows/$target_workflow/dispatches"
             $hdr = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = "application/vnd.github+json" }
