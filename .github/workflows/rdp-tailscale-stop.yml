@@ -1,11 +1,11 @@
-name: Tailscale Stop/Cleanup (delete devices by prefix)
+name: Tailscale Cleanup (delete devices by prefix)
 
 on:
   workflow_dispatch:
     inputs:
       ts_tailnet:  { description: "Tailscale tailnet (e.g. you@gmail.com)", required: true }
       ts_api_key:  { description: "Tailscale API key (device admin, no Bearer)", required: true }
-      base_prefix: { description: "Hostname prefix to delete (e.g. bullet)", required: true, default: "bullet" }
+      base_prefix: { description: "Hostname prefix to delete (e.g. ghbullet)", required: true, default: "ghbullet" }
       max_count:   { description: "Max devices to delete", required: false, default: "10" }
       dry_run:     { description: "true = list only; false = delete", required: false, default: "false" }
 
@@ -26,14 +26,16 @@ jobs:
 
           $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${{ inputs.ts_api_key }}:"))
           $tn = [uri]::EscapeDataString("${{ inputs.ts_tailnet }}")
-          $prefix = "${{ inputs.base_prefix }}"
+          # 💡 Using the new prefix
+          $prefix = "${{ inputs.base_prefix }}" 
           $max = [int]"${{ inputs.max_count }}"
           $dry = Yes("${{ inputs.dry_run }}")
 
+          # ⚠️ Ensure you have admin access via the API key for this to work
           $list = Invoke-RestMethod -Uri "https://api.tailscale.com/api/v2/tailnet/$tn/devices" -Headers @{ Authorization = "Basic $auth" }
           $targets = @($list.devices | Where-Object { $_.hostname -like "$prefix*" } | Select-Object -First $max)
 
-          if ($targets.Count -eq 0) { Write-Host "No matching devices."; exit 0 }
+          if ($targets.Count -eq 0) { Write-Host "No matching devices with prefix '$prefix'."; exit 0 }
 
           Write-Host "Found $($targets.Count) device(s) with prefix '$prefix':"
           $targets | ForEach-Object { Write-Host " - $($_.hostname) [$($_.id)]" }
